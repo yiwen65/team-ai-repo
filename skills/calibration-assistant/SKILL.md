@@ -1,68 +1,87 @@
 ---
-name: calibration-assistant
+name: apollo-calibration-assistant
 description: >
-  自动驾驶多传感器标定深度助手。覆盖相机（单目/双目/环视）、激光雷达（机械/固态）、毫米波雷达、IMU、GNSS
-  的内外参标定、联合优化、在线漂移检测与自标定。
-  在以下场景触发使用：
-  (1) 新车型/新传感器布置的标定方案设计，(2) 标定数据质量分析与重投影误差异常排查，
-  (3) 多传感器联合标定（相机-激光雷达-毫米波-IMU）参数优化，(4) 在线标定/自标定算法选型与验证，
-  (5) 标定参数版本管理与加载错误排查，(6) 温度/振动导致的标定漂移检测与补偿。
+  Apollo-Lite 自动驾驶标定系统深度助手。基于 Cyber RT 中间件，覆盖相机内参/外参标定、
+  LiDAR-Camera 联合标定、Radar 标定、IMU-GNSS 标定、在线标定、外参漂移检测。
+  涉及标定工具链（camera_lidar_calibrator, online_calibrator）、标定数据验证、
+  重投影误差分析、多传感器时空同步。在以下场景触发使用：
+  (1) Apollo calibration 模块编译/运行问题，(2) 相机内参/外参标定与验证，
+  (3) LiDAR-Camera 联合标定（Pandar/Livox/Velodyne + 相机），(4) 在线标定与漂移检测，
+  (5) 标定参数版本管理与加载，(6) 多传感器时间同步验证。
 ---
 
-# Calibration Assistant
+# Apollo Calibration Assistant
 
-自动驾驶多传感器标定深度助手。覆盖静态标定、联合优化、在线漂移检测全链路。
+Apollo-Lite 标定系统深度助手。覆盖 camera/lidar/radar/imu 全传感器标定与验证。
 
 ## 快速启动
 
 用户提供以下信息即可触发分析：
-- 传感器型号清单 + 安装位姿（CAD 或实测）
-- 标定数据（标定板图像、点云、imu bag）
-- 标定结果文件（yaml/json，含内参/外参/畸变系数）
-- 问题描述（重投影误差大、融合错位、远处目标偏移等）
+- 标定类型（内参/外参/联合/在线）+ 传感器型号
+- Apollo-lite 路径 + 标定模块日志
+- 标定数据（图像/点云/轨迹）+ 标定结果文件
+- 问题描述（重投影误差大/融合错位/外参漂移）
 
 ## 核心能力域
 
 | 域 | 说明 | 参考文档 |
 |---|---|---|
-| 相机标定 | 针孔/鱼眼/全景模型，内参+畸变，重投影误差分析 | `references/camera-calibration.md` |
-| 激光雷达标定 | 多线/固态雷达内参，反射率校准 | `references/lidar-calibration.md` |
-| 联合标定 | 相机-激光雷达-毫米波-IMU 联合外参优化 | `references/joint-calibration.md` |
-| 在线标定 | 无标定板自标定，场景特征利用，漂移检测 | `references/online-calibration.md` |
-| 标定质量评估 | 多距离验证、动态场景测试、温度漂移监控 | `references/quality-assessment.md` |
+| 相机标定 | 针孔/鱼眼模型、棋盘格/AprilGrid、内参+畸变 | `references/camera-calibration.md` |
+| LiDAR 标定 | 多线雷达内参、LiDAR-Camera 联合外参 | `references/lidar-calibration.md` |
+| 在线标定 | 场景特征提取、外参漂移检测、自动补偿 | `references/online-calibration.md` |
+| 时间同步 | 多传感器时间戳对齐、gPTP/PTP、硬件同步 | `references/time-sync.md` |
+| 标定验证 | 重投影误差、多距离验证、动态场景测试 | `references/calibration-validation.md` |
+
+## Apollo-lite 标定模块结构
+
+```
+modules/calibration/
+├── camera_lidar_calibrator/    # LiDAR-Camera 联合标定
+├── online_calibrator/          # 在线标定
+├── extrinsic_file_process/     # 外参文件处理
+└── ...
+
+modules/perception/camera/lib/calibrator/   # 相机标定相关
+├── laneline/                   # 车道线辅助标定
+└── online_calibration/         # 在线标定服务
+```
 
 ## 标定问题诊断流程
 
-1. **确认坐标系定义** → 车辆坐标系原点（后轴中心/质心/IMU）必须一致
-2. **检查标定数据** → 角点检测率、标定板姿态多样性、点云反射率
-3. **验证静态标定** → 多距离重投影、边缘对齐、重叠区一致性
-4. **排查动态误差** → 时间同步、运动畸变、IMU 偏差耦合
-5. **在线监控** → 场景特征稳定性、外参漂移趋势、触发重标定阈值
+1. **确认标定类型** → 内参/外参/联合/在线
+2. **检查标定数据** → 图像质量、点云密度、姿态多样性
+3. **验证标定结果** → 重投影误差、边缘对齐、融合效果
+4. **排查时间同步** → 各传感器 timestamp 单调性、偏移量
+5. **在线监控** → 场景特征稳定性、漂移趋势、触发阈值
 
-## 工具脚本
+## 关键标定参数
 
-| 脚本 | 用途 |
-|---|---|
-| `scripts/reprojection_analyzer.py` | 计算多距离重投影误差，生成可视化报告 |
-| `scripts/extrinsic_drift_monitor.py` | 基于场景特征（车道线/灯杆）检测外参漂移 |
-| `scripts/calib_validator.py` | 对标定结果执行完整验证 checklist |
+| 标定类型 | 精度要求 | 验证方法 | 漂移检测周期 |
+|---------|---------|---------|-------------|
+| 相机内参 | 重投影误差 < 0.3px | 棋盘格角点 | 每季度 |
+| 相机-相机 | 重叠区误差 < 2px | 场景特征匹配 | 每月 |
+| 相机-LiDAR | 重投影 < 5px @ 10m | 标定板/自然特征 | 每周 |
+| LiDAR-IMU | 时间偏移 < 5ms | 运动场景验证 | 每次启动 |
+| Radar-相机 | 角度误差 < 0.5° | 目标关联验证 | 每月 |
 
 ## 输出规范
 
 ```markdown
-# 标定问题分析报告
+# Apollo 标定问题分析报告
 
-## 1. 坐标系与传感器配置快照
+## 1. 标定类型与传感器配置
 ## 2. 标定数据质量评估
-## 3. 静态标定验证结果（0m/5m/20m/50m/100m）
-## 4. 根因定位（标定数据/算法/传感器/环境）
-## 5. 重标定方案（如需）
-## 6. 在线监控建议
+## 3. 标定结果验证（多距离）
+## 4. 时间同步状态
+## 5. 根因定位
+## 6. 重标定方案
+## 7. 在线监控建议
 ```
 
 ## 关键原则
 
-- **相机-激光雷达标定先看角点提取质量**：标定板角点在点云中的反射率需 > 80%，图像中需清晰可见
-- **环视相机标定重点查重叠区**：相邻相机在 10-20m 处的特征点匹配误差应 < 2px
-- **在线标定依赖场景特征**：需确保运行路线有稳定垂直特征（灯杆、建筑边角）
-- **温度漂移量化标准**：-20°C 到 +60°C 范围内，外参变化应 < 0.1°（旋转）和 < 2cm（平移）
+- **Apollo 标定板角点精度决定一切**：Apollo 使用高反射率标定板，角点在点云中需清晰可见
+- **LiDAR-Camera 联合标定先查时间戳**：Cyber RT Header 中的 timestamp_sec 必须对齐，偏移 > 50ms 导致标定失败
+- **在线标定依赖车道线/灯杆**：Apollo online_calibrator 利用车道线平行度和灯杆垂直度作为约束
+- **外参文件格式**：Apollo 使用 YAML/Proto 格式，需确认加载路径和版本
+- **温度漂移量化**：-20°C 到 +60°C 范围内，外参变化应 < 0.1°（旋转）和 < 2cm（平移）

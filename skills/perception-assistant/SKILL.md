@@ -1,77 +1,107 @@
 ---
-name: perception-assistant
+name: apollo-perception-assistant
 description: >
-  自动驾驶感知模块的深度技术助手。覆盖相机、激光雷达、毫米波雷达、超声波的多传感器融合感知全流程，
-  包括传感器选型与配置、数据预处理、2D/3D/BEV 目标检测、时序融合、跟踪（MOT）、语义分割、Occupancy 预测、
-  数据集构建与质量评估、模型部署优化（TensorRT/ONNX）、在线监控与故障诊断。
-  在以下场景触发使用：
-  (1) 多传感器标定验证与融合参数调优，(2) 感知模型选型（BEVDet/BEVFusion/PointPillars/CenterPoint/YOLO-Pose等）
-  或性能瓶颈分析，(3) 时序对齐、数据关联、跟踪丢失问题排查，(4) 数据集标注质量检查与分布分析，
-  (5) 模型量化/剪枝/TensorRT部署问题，(6) 传感器异常（鬼影、漏检、类别错分）根因定位。
+  Apollo-Lite 自动驾驶感知模块深度助手。基于 Cyber RT 中间件，覆盖 camera/lidar/radar/multi-sensor-fusion
+  全链路开发与调试。涉及 YOLO/DarkSCNN/DenseLine 等检测器、在线标定、BEVFusion、PointPillars、
+  时序跟踪（OMT/ByteTrack）、数据融合、TensorRT 部署优化。在以下场景触发使用：
+  (1) Apollo perception 模块编译/启动/运行问题排查，(2) Camera 检测器（YOLO/DarkSCNN）调优与精度分析，
+  (3) LiDAR 点云处理（hesai/livox/velodyne 驱动）与融合，(4) 多传感器融合配置与同步问题，
+  (5) Cyber RT DAG/Component 配置与 channel 通信问题，(6) 感知模型 TensorRT 部署与精度验证，
+  (7) 数据闭环：采集、标注、训练、验证流程。
 ---
 
-# Perception Assistant
+# Apollo Perception Assistant
 
-自动驾驶感知模块深度技术助手。提供从传感器配置到模型部署的全链路分析能力。
+Apollo-Lite 感知模块深度助手。基于 Cyber RT 中间件，覆盖 camera/lidar/radar/fusion 全链路。
 
 ## 快速启动
 
-用户提供以下信息之一即可触发分析：
-- 传感器配置清单（型号、分辨率、FOV、安装位姿）
-- 问题描述 + 日志/数据片段（rosbag、检测结果、可视化截图）
-- 模型选型需求（算力约束、精度要求、延迟目标）
-- 数据集样本或标注统计
+用户提供以下信息即可触发分析：
+- Apollo-lite 路径 + 模块名称（perception/camera/lidar/radar/fusion）
+- Cyber RT DAG 配置文件（.dag）或日志
+- 传感器型号（hesai/livox/velodyne/rslidar + 相机型号）
+- 问题描述（启动失败/检测异常/融合错位/部署问题）+ 日志
 
 ## 核心能力域
 
 | 域 | 说明 | 参考文档 |
 |---|---|---|
-| 传感器与标定 | 多传感器时空标定验证、外参漂移检测 | `references/sensor-calibration.md` |
-| 融合策略 | 前融合/后融合/中间融合（BEVFusion/TransFusion）选型与调优 | `references/fusion-strategies.md` |
-| 检测算法 | 2D/3D/BEV/Occupancy 模型选型与性能分析 | `references/detection-algorithms.md` |
-| 跟踪与时序 | MOT（ByteTrack/StrongSORT）、时序对齐、航迹关联 | `references/tracking.md` |
-| 部署优化 | TensorRT/ONNX 量化、算子适配、延迟 profiling | `references/deployment.md` |
-| 数据质量 | 数据集分布分析、标注质量检查、长尾问题诊断 | `references/data-quality.md` |
+| Camera 感知 | YOLO/DarkSCNN/DenseLine 检测器、车道线、红绿灯 | `references/camera-perception.md` |
+| LiDAR 感知 | PointPillars/CenterPoint、点云预处理、多线雷达驱动 | `references/lidar-perception.md` |
+| Radar 融合 | 毫米波雷达目标级融合、Conti/Racobit 驱动 | `references/radar-fusion.md` |
+| 多传感器融合 | Camera-LiDAR-Radar 数据关联、时空同步 | `references/multi-sensor-fusion.md` |
+| Cyber RT 配置 | DAG/Component/Channel/QoS 配置与调试 | `references/cyber-rt-config.md` |
+| 部署优化 | TensorRT/ONNX、Bazel 构建、Docker 容器化 | `references/perception-deployment.md` |
 
-## 分析流程
+## Apollo-lite 感知模块结构
 
-1. **信息收集** → 确认传感器拓扑、问题现象、约束条件
-2. **根因定位** → 按传感器层 → 数据层 → 算法层 → 部署层逐层排查
-3. **方案输出** → 给出可执行的调参建议、配置修改、验证方法
+```
+modules/perception/
+├── camera/           # 相机感知
+│   ├── app/          # 应用入口（障碍物/车道线/红绿灯）
+│   ├── common/       # 公共工具（数据 provider、坐标转换）
+│   ├── lib/          # 算法库
+│   │   ├── obstacle/detector/yolo/      # YOLO 检测器
+│   │   ├── obstacle/transformer/        # 2D→3D 转换
+│   │   ├── lane/detector/darkscnn/      # DarkSCNN 车道线
+│   │   ├── lane/detector/denseline/     # DenseLine 车道线
+│   │   ├── traffic_light/               # 红绿灯检测
+│   │   └── tracker/omt/                 # OMT 多目标跟踪
+│   └── tools/        # 离线工具与可视化
+├── lidar/            # 激光雷达感知
+│   ├── app/          # 点云检测应用
+│   └── lib/          # 点云分割/检测算法
+├── radar/            # 毫米波雷达
+│   └── app/          # 雷达检测应用
+└── fusion/           # 多传感器融合
+    └── app/          # 融合应用
+```
+
+## 问题诊断流程
+
+1. **确认 Cyber RT 环境** → `cyber_monitor` 查看 channel 状态
+2. **检查 DAG 配置** → readers/writers channel 名称匹配
+3. **排查传感器驱动** → drivers 模块日志、点云/图像数据正常
+4. **分析感知算法** → 检测器输出、跟踪结果、融合关联
+5. **验证部署产物** → Bazel 编译产物、so 库加载、TensorRT 引擎
 
 ## 工具脚本
 
 | 脚本 | 用途 |
 |---|---|
-| `scripts/sensor_sync_checker.py` | 检查多传感器时间同步偏移，输出 topic 时差统计 |
-| `scripts/fusion_coverage_analyzer.py` | 分析各传感器 FOV 覆盖盲区，生成可视化报告 |
-| `scripts/detection_drift_detector.py` | 对比两版模型检测结果，定位精度漂移类别和场景 |
+| `scripts/cyber_channel_checker.py` | 检查 Cyber RT channel 发布/订阅状态 |
+| `scripts/dag_config_validator.py` | 验证 DAG 文件配置完整性 |
+| `scripts/perception_latency_analyzer.py` | 分析感知链路各阶段延迟 |
 
-> 使用脚本前读取脚本头部的依赖说明和参数定义。
+## Cyber RT Channel 规范
+
+| Channel | 类型 | 发布者 | 订阅者 |
+|---------|------|--------|--------|
+| `/apollo/sensor/camera/front_6mm/image` | `Image` | drivers/camera | perception/camera |
+| `/apollo/sensor/lidar128/compensator/PointCloud2` | `PointCloud` | drivers/lidar | perception/lidar |
+| `/apollo/sensor/radar/front` | `ContiRadar` | drivers/radar | perception/radar |
+| `/apollo/perception/obstacles` | `PerceptionObstacles` | perception/fusion | planning/prediction |
+| `/apollo/perception/traffic_light` | `TrafficLightDetection` | perception/camera | planning |
 
 ## 输出规范
 
-所有分析报告的默认结构：
-
 ```markdown
-# 感知问题分析报告
+# Apollo 感知问题分析报告
 
-## 1. 现象与影响（一句话描述严重程度）
-## 2. 传感器配置快照
-## 3. 根因假设（Top-3，按概率排序）
-## 4. 逐层排查证据
-   - 传感器层：原始数据质量、标定精度
-   - 数据层：预处理、时间同步、坐标转换
-   - 算法层：模型输入、参数配置、后处理阈值
-   - 部署层：量化损失、算子精度、推理框架版本
-## 5. 验证实验设计
-## 6. 修复方案与参数建议
-## 7. 回归验证清单
+## 1. 现象与影响
+## 2. Cyber RT 环境状态
+## 3. DAG/Channel 配置检查
+## 4. 传感器数据质量
+## 5. 感知算法分析（检测/跟踪/融合）
+## 6. 根因定位
+## 7. 修复方案
+## 8. 验证方法
 ```
 
 ## 关键原则
 
-- **多传感器问题先查时间同步**：ROS2 的 `message_filters::Synchronizer` 或 ` ApproximateTime` policy 常是跟踪丢失的根因
-- **BEV 模型精度问题先查标定**：相机-激光雷达外参漂移 0.5° 可导致 BEVFusion 近距目标偏移 > 1m
-- **量化掉点优先查敏感算子**：SoftNMS、DeformConv、注意力模块在 INT8 下易崩，优先保留 FP16
-- **鬼影/误检优先查数据分布**：训练集缺少的施工锥桶、异形车辆、低光照场景，直接补数据比调阈值更有效
+- **Cyber RT 问题先看 channel**: `cyber_channel echo /apollo/sensor/...` 确认数据流
+- **DAG 配置 readers/writers 必须匹配**: channel 名称拼写错误是常见启动失败原因
+- **相机检测先看 data_provider**: 图像格式、分辨率、畸变参数错误会导致检测器崩溃
+- **LiDAR 融合时检查时间戳**: Cyber RT Header 中的 timestamp 用于时序对齐，偏移 > 100ms 导致融合错位
+- **Bazel 编译产物路径**: 产物在 `bazel-bin/` 下，DAG 中 `module_library` 必须指向正确的 `.so` 路径

@@ -1,76 +1,131 @@
 ---
-name: tech-spec-writer
+name: apollo-tech-spec-writer
 description: >
-  自动驾驶项目技术方案深度编写助手。覆盖传感器选型（相机/激光雷达/毫米波/超声波/IMU/GNSS）、
-  算法选型（感知/规划/控制/定位/预测）、算力平台选型（Orin/Thor/地平线/J3/J5）、
-  通信架构（CAN/Ethernet/TSN/DDS）、功能安全方案（ASIL分解/冗余/降级）、
-  数据闭环设计（采集/标注/训练/验证/OTA）。
-  在以下场景触发使用：
-  (1) 新项目/新车型传感器方案设计，(2) 算法选型决策（精度/速度/成本权衡），
-  (3) 算力平台迁移或升级方案，(4) 功能安全概念设计（ASIL分解/冗余架构），
-  (5) 数据闭环流程设计，(6) 技术方案评审材料编写。
+  Apollo-Lite 自动驾驶项目技术方案深度编写助手。覆盖 Apollo-lite 架构设计、Cyber RT 中间件选型、
+  Bazel 构建系统、模块划分（perception/planning/control/prediction/localization/routing/canbus/guardian/monitor/dreamview）、
+  传感器选型（hesai/livox/velodyne/continental）、算力平台（Orin/Thor/地平线）、
+  数据闭环（cyber_recorder/标注/训练/OTA）。在以下场景触发使用：
+  (1) Apollo-lite 新项目/新车型架构设计，(2) Cyber RT 中间件与模块划分方案，
+  (3) 传感器与算力平台选型决策，(4) Bazel 构建系统与 CI/CD 设计，
+  (5) 数据闭环流程设计（采集/标注/训练/部署），(6) Apollo 模块集成方案与接口设计。
 ---
 
-# Tech Spec Writer
+# Apollo Tech Spec Writer
 
-自动驾驶项目技术方案深度编写助手。提供选型决策、架构设计、风险评估的专业支撑。
+Apollo-Lite 项目技术方案深度编写助手。覆盖架构、模块、传感器、算力、数据闭环全链路。
 
 ## 快速启动
 
 用户提供以下信息即可生成方案：
-- 项目背景（车型、场景、法规要求）+ 约束条件（预算/时间/团队规模）
+- 项目背景（车型、场景、法规）+ 约束条件（预算/时间/团队）
 - 技术需求（功能定义、性能指标、安全等级）
+- 对标信息（Apollo-lite 版本、竞品方案）
 - 候选方案（已有初步想法，需要对比分析）
-- 对标信息（竞品方案、行业标杆）
 
 ## 核心能力域
 
 | 域 | 说明 | 参考文档 |
 |---|---|---|
-| 传感器选型 | 相机/激光雷达/毫米波/超声波规格对比 | `references/sensor-selection.md` |
-| 算法选型 | 感知/规划/控制/定位算法选型决策 | `references/algorithm-selection.md` |
-| 算力平台 | Orin/Thor/地平线/J3/J5 规格对比 | `references/compute-platform.md` |
-| 通信架构 | CAN/CAN-FD/Ethernet/TSN/DDS/ROS2 | `references/communication.md` |
-| 功能安全 | ASIL分解、冗余设计、降级策略 | `references/functional-safety.md` |
-| 数据闭环 | 采集/标注/训练/验证/OTA 流程 | `references/data-loop.md` |
+| Apollo 架构 | Cyber RT 中间件、模块划分、DAG 拓扑 | `references/apollo-architecture.md` |
+| 传感器选型 | Hesai/Livox/Velodyne/Continental 规格对比 | `references/sensor-selection.md` |
+| 算力平台 | Orin/Thor/地平线/J5、GPU/CPU 需求估算 | `references/compute-platform.md` |
+| Bazel 构建 | 构建系统、CI/CD、缓存策略 | `references/bazel-cicd.md` |
+| 数据闭环 | cyber_recorder、标注、训练、OTA | `references/data-loop.md` |
+| 模块集成 | 接口设计、DAG 配置、消息格式 | `references/module-integration.md` |
 
-## 方案生成流程
+## Apollo-lite 系统架构
 
-1. **需求拆解** → 功能需求、性能需求、约束条件、验收标准
-2. **现状分析** → 对标竞品、技术成熟度、供应链风险
-3. **候选方案** → 至少 2 个可行方案，含优势/劣势/成本/风险
-4. **推荐方案** → 明确推荐，附决策理由和回退方案
-5. **实施计划** → Phase 划分、里程碑、资源需求、风险缓解
-6. **验证方案** → 测试策略、验收标准、回归计划
+```
+┌─────────────────────────────────────────────────────────────┐
+│                        Apollo-Lite                           │
+│                                                              │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐   │
+│  │  Camera  │  │  LiDAR   │  │  Radar   │  │  GNSS/   │   │
+│  │  Driver  │  │  Driver  │  │  Driver  │  │  IMU     │   │
+│  └────┬─────┘  └────┬─────┘  └────┬─────┘  └────┬─────┘   │
+│       │             │             │             │          │
+│       └─────────────┴─────────────┴─────────────┘          │
+│                         │                                   │
+│              ┌──────────┴──────────┐                        │
+│              │   Cyber RT (DAG)   │                        │
+│              │  ┌──────────────┐  │                        │
+│              │  │  Perception  │  │                        │
+│              │  │  (Camera/     │  │                        │
+│              │  │  LiDAR/Radar) │  │                        │
+│              │  └───────┬──────┘  │                        │
+│              │          │          │                        │
+│              │  ┌───────┴──────┐  │                        │
+│              │  │  Prediction  │  │                        │
+│              │  └───────┬──────┘  │                        │
+│              │          │          │                        │
+│              │  ┌───────┴──────┐  │                        │
+│              │  │   Planning   │  │                        │
+│              │  │  (EM/OpenSpace)│  │                        │
+│              │  └───────┬──────┘  │                        │
+│              │          │          │                        │
+│              │  ┌───────┴──────┐  │                        │
+│              │  │   Control    │  │                        │
+│              │  │  (MPC/LQR)   │  │                        │
+│              │  └───────┬──────┘  │                        │
+│              └──────────┼──────────┘                        │
+│                         │                                   │
+│              ┌──────────┴──────────┐                        │
+│              │       Canbus        │                        │
+│              │   (Vehicle Control) │                        │
+│              └─────────────────────┘                        │
+│                                                              │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐                  │
+│  │Localization│  │  Routing │  │ Dreamview│                  │
+│  │  (RTK/SLAM)│  │  (A*)    │  │  (HMI)   │                  │
+│  └──────────┘  └──────────┘  └──────────┘                  │
+│                                                              │
+│  ┌──────────┐  ┌──────────┐                                │
+│  │ Guardian │  │  Monitor │                                │
+│  │ (Safety) │  │ (Health) │                                │
+│  └──────────┘  └──────────┘                                │
+└─────────────────────────────────────────────────────────────┘
+```
+
+## 模块接口设计
+
+| 模块 | 输入 Channel | 输出 Channel | 说明 |
+|------|-------------|-------------|------|
+| Perception | `/apollo/sensor/*` | `/apollo/perception/obstacles` | 障碍物/车道线/红绿灯 |
+| Prediction | `/apollo/perception/obstacles` | `/apollo/prediction` | 轨迹预测 |
+| Planning | `/apollo/prediction`, `/apollo/localization/pose` | `/apollo/planning/trajectory` | 规划轨迹 |
+| Control | `/apollo/planning/trajectory` | `/apollo/control/chassis` | 控制命令 |
+| Localization | `/apollo/sensor/gnss/*`, `/apollo/sensor/lidar/*` | `/apollo/localization/pose` | 位姿 |
+| Guardian | `/apollo/monitor` | `/apollo/guardian` | 安全监控 |
+| Monitor | 系统资源 | `/apollo/monitor` | 健康监控 |
+
+## 传感器选型决策
+
+| 场景 | Camera | LiDAR | Radar | 算力 | 成本 |
+|------|--------|-------|-------|------|------|
+| 高速 NOA | 5 | 1-2 | 5 | Orin N (40T) | $3K |
+| 城市 NOA | 7-11 | 3-5 | 5+ | Orin X (254T) | $8K+ |
+| Robotaxi | 11+ | 5+ | 5+ | Orin X × 2 | $15K+ |
+| 低成本 ADAS | 1-3 | 0 | 1-3 | J3 (5T) | $500 |
 
 ## 输出规范
 
 ```markdown
-# XX 项目技术方案
+# Apollo 技术方案
 
 ## 1. 项目背景与目标
-## 2. 需求分析（功能/性能/安全/约束）
-## 3. 技术现状与对标
-## 4. 候选方案对比
-| 维度 | 方案A | 方案B | 方案C |
-|------|-------|-------|-------|
-| 成本 | | | |
-| 性能 | | | |
-| 成熟度 | | | |
-| 风险 | | | |
-
-## 5. 推荐方案
-## 6. 实施计划（Phase 1/2/3）
-## 7. 资源需求（人力/算力/时间）
+## 2. 系统架构设计
+## 3. 模块划分与接口
+## 4. 传感器与算力选型
+## 5. 构建系统与 CI/CD
+## 6. 数据闭环设计
+## 7. 实施计划
 ## 8. 风险评估与缓解
-## 9. 验证策略与验收标准
-## 10. 回退方案
 ```
 
 ## 关键原则
 
-- **选型决策必须有数据支撑**：不凭感觉，用 mAP/FPS/延迟/成本/功耗等量化指标
-- **安全相关方案必须有 ASIL 分析**：分解策略、冗余设计、降级路径缺一不可
-- **供应链风险评估必须做**：单一供应商、EOL 风险、地缘政治影响
-- **算力预留 30% 余量**：模型迭代、功能扩展、紧急 bugfix 需要算力 buffer
-- **回退方案必须可执行**：不能只说"用备选方案"，要明确切换条件和切换步骤
+- **Apollo 架构必须先定模块边界**：Cyber RT DAG 的 channel 接口一旦确定，变更成本极高
+- **传感器选型必须匹配场景**：高速场景重视 Radar 远距离，城市场景重视 LiDAR 360° 覆盖
+- **算力预留 30% 余量**：模型迭代、功能扩展、紧急修复需要 buffer
+- **Bazel 缓存策略决定 CI 效率**：远程缓存（remote cache）可将构建时间从 2h 降至 10min
+- **数据闭环必须覆盖全链路**：cyber_recorder → 标注 → 训练 → 验证 → OTA，缺一不可
