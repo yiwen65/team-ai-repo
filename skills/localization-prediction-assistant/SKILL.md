@@ -7,8 +7,8 @@ description: >
   深度学习预测网络（Network）、场景分类（Scenario）、子模块调度（Submodules）。
   在以下场景触发使用：
   (1) 定位漂移/跳变/失锁问题排查，(2) MSF/NDT 配准失败或收敛问题，
-  (3) Prediction 输出异常（轨迹不合理/预测延迟/场景误判），(4) Evaluator 意图评估精度问题，
-  (5) Predictor 自由运动/车道序列/交互式预测问题，(6) 预测网络模型加载与推理问题，
+  (3) Prediction 输出异常（轨迹不合理/预测延迟/场景误判）， (4) Evaluator 意图评估精度问题，
+  (5) Predictor 自由运动/车道序列/交互式预测问题， (6) 预测网络模型加载与推理问题，
   (7) Localization-Prediction-Planning 联合时序对齐问题。
 ---
 

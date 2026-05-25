@@ -22,7 +22,7 @@ Apollo-Lite 底盘集成深度助手。覆盖 Canbus 全车型适配、底盘协
 ## 快速启动
 
 用户提供以下信息即可触发分析：
-- 车型平台（lexus/lincoln/devkit/ge3/gem/wey/...）或新车型名称
+- 车型平台（lexus/lincoln/devkit/ge3/gem/wey/…）或新车型名称
 - 底盘协议类型（CAN/以太网）+ DBC 文件
 - 问题描述（控制异常/通信故障/信号超时/安全触发）+ 日志
 - 硬件配置（线控底盘型号/ECU/网关）

@@ -1,68 +1,110 @@
-# 团队 AI 使用指南
+# Apollo-Lite 团队 AI Skill 使用指南
 
-## 一、Knowhow 补齐清单
+> 本文档面向 Apollo-Lite 自动驾驶开发团队，介绍如何高效使用 team-ai-repo 的 13 个 AI Skill。
 
-### 1. Agent / Skill 概念
-- **Agent**: AI 代理，能自主完成任务的智能体
-- **Skill**: 封装好的能力模块，可被 Agent 调用
-- 类比：Agent = 人，Skill = 工具/技能
+## 📋 快速导航
 
-### 2. Claude Code 常用指令
+| 开发阶段 | 推荐 Skill | 代码覆盖 |
+|----------|-----------|---------|
+| **中间件开发** | `cyber-rt-developer` | `cyber/` (~57K 行) |
+| **传感器集成** | `sensor-drivers-assistant` | `drivers/` (~46K 行) |
+| **感知算法** | `perception-assistant` | `perception/` (~158K 行) |
+| **标定验证** | `calibration-assistant` | `perception/camera/calibration_service/` |
+| **定位预测** | `localization-prediction-assistant` | `localization/` + `prediction/` (~67K 行) |
+| **地图路由** | `map-routing-assistant` | `map/` + `routing/` (~25K 行) |
+| **规划控制** | `planning-control-assistant` | `planning/` + `control/` (~134K 行) |
+| **底盘集成** | `canbus-integration-assistant` | `canbus/` (~95K 行) |
+| **测试验证** | `test-verification-assistant` | `guardian/` + `monitor/` + 集成测试 |
+| **代码审查** | `code-reviewer` | 全模块通用 |
+| **技术方案** | `tech-spec-writer` | 系统级 |
+| **部署运维** | `deployment-checker` | 系统级 |
+| **汇报材料** | `report-writer` | 系统级 |
+
+## 🚀 在 Claude Code 中使用
+
 ```bash
-# 启动
-claude
+# 安装 Claude Code
+npm install -g @anthropic-ai/claude-code
 
-# 常用命令
-/help          # 查看帮助
-/skill         # 管理 skill
-/terminal      # 终端模式
-/compact       # 压缩上下文
+# 进入项目目录
+cd /path/to/apollo-lite
+
+# 加载需要的 skill（按需加载）
+/skill load /path/to/team-ai-repo/skills/cyber-rt-developer
+/skill load /path/to/team-ai-repo/skills/planning-control-assistant
 ```
 
-### 3. Skill 开发流程
-```bash
-# 1. 创建 skill 目录
-mkdir skills/xxx助手
+## 🎯 典型工作流
 
-# 2. 编写 SKILL.md
-# 3. 测试验证
-# 4. 提交到团队仓库
+### 场景 1：感知模块调试
+```
+用户: "Apollo 感知启动失败，camera 无输出"
+→ 加载 perception-assistant
+→ 提供: DAG 配置 + 日志 + 相机型号
+→ AI 输出: 根因定位 + 修复方案
 ```
 
-## 二、工具配置
-
-### API Key 配置
-在 Claude Code 中设置：
-```bash
-claude config set api_key sk-xxxx
+### 场景 2：新车型底盘适配
+```
+用户: "新车型 Devkit2 的刹车控制无响应"
+→ 加载 canbus-integration-assistant
+→ 提供: DBC 文件 + VehicleController 代码 + CAN 抓包
+→ AI 输出: 信号映射分析 + 协议修正建议
 ```
 
-### VPN 代理配置
-```bash
-export HTTPS_PROXY=http://your-proxy:port
+### 场景 3：定位漂移排查
+```
+用户: "MSF 定位在隧道场景漂移严重"
+→ 加载 localization-prediction-assistant
+→ 提供: localization 日志 + 地图版本 + IMU 数据
+→ AI 输出: RTK/IMU/NDT 层分析 + 参数调优
 ```
 
-## 三、Skill 使用示例
-
-### 标定助手
-```bash
-/skill load ./skills/calibration-assistant
-# 然后输入标定数据，获取分析报告
+### 场景 4：Cyber RT 性能调优
+```
+用户: "Planning 延迟不稳定，偶发 > 200ms"
+→ 加载 cyber-rt-developer
+→ 提供: cyber_monitor 截图 + DAG 配置 + 调度器配置
+→ AI 输出: 调度策略优化 + Channel QoS 调整
 ```
 
-### 代码审查
-```bash
-/skill load ./skills/code-review
-# 上传代码文件，获取审查意见
+## 📁 目录结构
+
+```
+team-ai-repo/
+├── skills/           # 13 个 AI Skill
+│   ├── cyber-rt-developer/
+│   ├── sensor-drivers-assistant/
+│   ├── perception-assistant/
+│   ├── calibration-assistant/
+│   ├── localization-prediction-assistant/
+│   ├── map-routing-assistant/
+│   ├── planning-control-assistant/
+│   ├── canbus-integration-assistant/
+│   ├── test-verification-assistant/
+│   ├── code-reviewer/
+│   ├── tech-spec-writer/
+│   ├── deployment-checker/
+│   └── report-writer/
+├── prompts/          # 标准 Prompt 模板
+├── scripts/          # 各 Skill 配套脚本
+└── docs/             # 使用文档
 ```
 
-## 四、团队规范
+## ⚠️ 重要提示
 
-1. **Skill 命名**: 模块+功能，如 `calibration-assistant`
-2. **文档要求**: 每个 skill 必须包含 README.md
-3. **测试要求**: 提交前需通过至少 3 个测试用例
-4. **更新流程**: 修改 → 测试 → PR → 合并
+1. **所有 Skill 基于 apollo-lite 实际代码库**：目录树、类名、算法名称均与 `wheelos/apollo-lite` main 分支一致
+2. **Skill 之间可组合使用**：复杂问题可加载多个 Skill 协同分析
+3. **脚本工具需 Apollo 环境**：部分 Python 脚本依赖 `cyber_recorder`、`cyber_channel` 等 CLI 工具
+4. **持续同步**：apollo-lite 代码更新后，定期同步 team-ai-repo 的 Skill 内容
+
+## 🔗 相关资源
+
+- Apollo-Lite 仓库: https://github.com/wheelos/apollo-lite
+- Cyber RT 文档: `cyber/README.md`
+- 模块设计文档: 见各模块 `README.md` / `README_cn.md`
 
 ---
 
-> 有问题联系 Vincent
+> 维护者：Vincent
+> 最后更新：2026-05-25（重构完成：13 Skill，基于 apollo-lite 实际代码库）
